@@ -2,9 +2,9 @@ import * as React from "react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import {
   ShoppingBag,
   ShoppingCart,
@@ -15,11 +15,11 @@ import {
   CreditCard,
   Settings,
 } from "lucide-react";
-import Header from "@/components/Header";
-import ProductBrowsing from "@/components/ProductBrowsing";
-import CartCheckout from "@/components/CartCheckout";
-import CustomerRatings from "@/components/CustomerRatings";
-import Footer from "@/components/Footer";
+import Header from "../components/Header";
+import ProductBrowsing from "../components/ProductBrowsing";
+import CartCheckout from "../components/CartCheckout";
+import CustomerRatings from "../components/CustomerRatings";
+import Footer from "../components/Footer";
 
 // Add a typed profile interface instead of using `any`
 type CustomerProfile = {
