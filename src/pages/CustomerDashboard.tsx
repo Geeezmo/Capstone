@@ -1,83 +1,121 @@
-import { useState, useEffect } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ShoppingBag, 
-  ShoppingCart, 
-  Star, 
-  User, 
+import {
+  ShoppingBag,
+  ShoppingCart,
+  Star,
+  User,
   Heart,
   Package,
   CreditCard,
-  Settings
+  Settings,
 } from "lucide-react";
-import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import ProductBrowsing from "@/components/ProductBrowsing";
 import CartCheckout from "@/components/CartCheckout";
 import CustomerRatings from "@/components/CustomerRatings";
 import Footer from "@/components/Footer";
 
-const CustomerDashboard = () => {
+// Add a typed profile interface instead of using `any`
+type CustomerProfile = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  agree_to_terms?: boolean | null;
+  marketing_emails?: boolean | null;
+  created_at?: string | null;
+};
+
+const CustomerDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("browse");
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState<CustomerProfile | null>(null);
 
   // Check for tab parameter in URL and set active tab accordingly
   useEffect(() => {
-    const tabParam = searchParams.get('tab');
-    if (tabParam && ['browse', 'cart', 'reviews'].includes(tabParam)) {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["browse", "cart", "reviews"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      // get current session
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session ?? null;
+      if (!session) {
+        navigate("/customer/login");
+        return;
+      }
+
+      // fetch customer profile
+      const userId = session.user.id;
+      const { data: profileData, error } = await supabase.from("customers").select("*").eq("id", userId).single();
+
+      if (!mounted) return;
+
+      if (error) {
+        setProfile(null);
+      } else {
+        setProfile(profileData as CustomerProfile);
+      }
+      setLoading(false);
+    })();
+
+    // subscribe to auth changes to redirect on sign-out
+    const { data: subscriptionData } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) navigate("/customer/login");
+    });
+
+    return () => {
+      mounted = false;
+      // unsubscribe if available
+      subscriptionData?.subscription?.unsubscribe?.();
+    };
+  }, [navigate]);
 
   const customerStats = {
     totalOrders: 12,
     totalSpent: 456.78,
     favoriteProducts: 8,
-    reviewsWritten: 5
+    reviewsWritten: 5,
   };
 
   const recentOrders = [
-    {
-      id: "ORD-001",
-      date: "2024-01-15",
-      status: "Delivered",
-      total: 89.99,
-      items: 2
-    },
-    {
-      id: "ORD-002", 
-      date: "2024-01-10",
-      status: "In Transit",
-      total: 45.50,
-      items: 1
-    },
-    {
-      id: "ORD-003",
-      date: "2024-01-05", 
-      status: "Delivered",
-      total: 123.45,
-      items: 3
-    }
+    { id: "ORD-001", date: "2024-01-15", status: "Delivered", total: 89.99, items: 2 },
+    { id: "ORD-002", date: "2024-01-10", status: "In Transit", total: 45.5, items: 1 },
+    { id: "ORD-003", date: "2024-01-05", status: "Delivered", total: 123.45, items: 3 },
   ];
+
+  if (loading) return <div>Loading...</div>;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <main>
         {/* Dashboard Header */}
         <section className="py-8 bg-gradient-card border-b">
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <h1 className="text-3xl font-bold">Welcome back, Customer!</h1>
-                <p className="text-muted-foreground mt-2">
-                  Manage your shopping experience and track your orders
-                </p>
+                <h1 className="text-3xl font-bold">Welcome back{profile ? `, ${profile.first_name || ""}` : ", Customer"}!</h1>
+                <p className="text-muted-foreground mt-2">Manage your shopping experience and track your orders</p>
               </div>
-              
+
               <div className="flex items-center space-x-4">
                 <Button variant="outline">
                   <Settings className="h-4 w-4 mr-2" />
@@ -150,26 +188,21 @@ const CustomerDashboard = () => {
               <h2 className="text-2xl font-bold">Recent Orders</h2>
               <Button variant="outline">View All Orders</Button>
             </div>
-            
+
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {recentOrders.map((order) => (
                 <div key={order.id} className="bg-gradient-card p-4 rounded-xl border shadow-soft">
                   <div className="flex items-center justify-between mb-3">
                     <span className="font-mono text-sm text-muted-foreground">{order.id}</span>
-                    <Badge 
-                      variant={order.status === 'Delivered' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
+                    <Badge variant={order.status === "Delivered" ? "default" : "secondary"} className="text-xs">
                       {order.status}
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>Date:</span>
-                      <span className="text-muted-foreground">
-                        {new Date(order.date).toLocaleDateString()}
-                      </span>
+                      <span className="text-muted-foreground">{new Date(order.date).toLocaleDateString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>Items:</span>
@@ -180,7 +213,7 @@ const CustomerDashboard = () => {
                       <span className="font-semibold">${order.total.toFixed(2)}</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex gap-2 mt-4">
                     <Button variant="outline" size="sm" className="flex-1">
                       Track

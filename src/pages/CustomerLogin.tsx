@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator";
 import { Store, User, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
 
 const CustomerLogin = () => {
   const navigate = useNavigate();
@@ -16,20 +18,55 @@ const CustomerLogin = () => {
     password: "",
     rememberMe: false,
   });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (mounted && data?.session) {
+          navigate("/customer/dashboard");
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Customer login:", formData);
-    // Demo: Redirect to dashboard after successful login
-    navigate("/customer/dashboard");
+    setError(null);
+    if (!formData.email || !formData.password) {
+      setError("Enter email and password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+      if (signInError) throw signInError;
+
+      navigate("/customer/dashboard");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message);
+      else setError(String(err));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -42,14 +79,12 @@ const CustomerLogin = () => {
             <ArrowLeft className="h-5 w-5 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Back to Home</span>
           </Link>
-          
+
           <div className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-gradient-primary flex items-center justify-center">
               <Store className="h-4 w-4 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              LocalMart
-            </span>
+            <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">LocalMart</span>
           </div>
         </div>
 
@@ -62,21 +97,17 @@ const CustomerLogin = () => {
               </div>
             </div>
             <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-            <p className="text-muted-foreground">
-              Sign in to your customer account to continue shopping
-            </p>
+            <p className="text-muted-foreground">Sign in to your customer account to continue shopping</p>
           </div>
-          
+
           {/* Login Form */}
           <Card className="shadow-soft border-border/50">
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-xl">Customer Sign In</CardTitle>
-              <CardDescription>
-                Access your account to browse and purchase products
-              </CardDescription>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <CardDescription>Access your account to browse and purchase products</CardDescription>
+              <Button
+                type="button"
+                variant="outline"
                 className="w-full border-primary/20 hover:bg-primary/5 mb-4"
                 onClick={() => navigate("/customer/dashboard")}
               >
@@ -88,9 +119,7 @@ const CustomerLogin = () => {
                   <span className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or sign in with email
-                  </span>
+                  <span className="bg-background px-2 text-muted-foreground">Or sign in with email</span>
                 </div>
               </div>
             </CardHeader>
@@ -104,16 +133,7 @@ const CustomerLogin = () => {
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="pl-10"
-                      required
-                    />
+                    <Input id="email" name="email" type="email" placeholder="Enter your email" value={formData.email} onChange={handleInputChange} className="pl-10" required />
                   </div>
                 </div>
 
@@ -124,21 +144,8 @@ const CustomerLogin = () => {
                   </Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="pl-10 pr-10"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
+                    <Input id="password" name="password" type={showPassword ? "text" : "password"} placeholder="Enter your password" value={formData.password} onChange={handleInputChange} className="pl-10 pr-10" required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors">
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
@@ -147,31 +154,22 @@ const CustomerLogin = () => {
                 {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="rememberMe"
-                      name="rememberMe"
-                      checked={formData.rememberMe}
-                      onChange={handleInputChange}
-                      className="h-4 w-4 text-primary border-input rounded focus:ring-ring"
-                    />
+                    <input type="checkbox" id="rememberMe" name="rememberMe" checked={formData.rememberMe} onChange={handleInputChange} className="h-4 w-4 text-primary border-input rounded focus:ring-ring" />
                     <Label htmlFor="rememberMe" className="text-sm text-muted-foreground">
                       Remember me
                     </Label>
                   </div>
-                  <Link 
-                    to="/customer/forgot-password" 
-                    className="text-sm text-primary hover:underline transition-colors"
-                  >
+                  <Link to="/customer/forgot-password" className="text-sm text-primary hover:underline transition-colors">
                     Forgot password?
                   </Link>
                 </div>
 
                 {/* Submit Button */}
-                <Button type="submit" variant="hero" className="w-full" size="lg">
-                  Sign In
+                <Button type="submit" variant="hero" className="w-full" size="lg" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
-                
+
+                {error && <div className="text-sm text-red-600">{error}</div>}
               </form>
 
               {/* Divider */}
@@ -196,10 +194,7 @@ const CustomerLogin = () => {
               <div className="text-center pt-4 border-t border-border/50">
                 <p className="text-sm text-muted-foreground">
                   Don't have an account?{" "}
-                  <Link 
-                    to="/customer/register" 
-                    className="text-primary hover:underline font-medium transition-colors"
-                  >
+                  <Link to="/customer/register" className="text-primary hover:underline font-medium transition-colors">
                     Sign up here
                   </Link>
                 </p>
@@ -211,10 +206,7 @@ const CustomerLogin = () => {
           <div className="text-center mt-6">
             <p className="text-sm text-muted-foreground">
               Are you a vendor?{" "}
-              <Link 
-                to="/vendor/login" 
-                className="text-vendor hover:underline font-medium transition-colors"
-              >
+              <Link to="/vendor/login" className="text-vendor hover:underline font-medium transition-colors">
                 Sign in to vendor dashboard
               </Link>
             </p>
