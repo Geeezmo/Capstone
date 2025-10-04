@@ -3,18 +3,16 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-// Masked logging so you can verify presence without exposing full key in console
 function mask(val?: string) {
   if (!val) return '<missing>'
   return val.length > 12 ? `${val.slice(0, 8)}...${val.slice(-4)}` : val
 }
+
 console.info('[supabase] VITE_SUPABASE_URL:', mask(SUPABASE_URL))
 console.info('[supabase] VITE_SUPABASE_ANON_KEY:', mask(SUPABASE_ANON_KEY))
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  // clear runtime message for debugging (this will show in browser console)
   console.error('Missing Supabase env vars. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env or Vercel env settings.')
-  // Throwing here causes a white screen; keep it for now so you see the error in console.
   throw new Error('supabaseUrl is required. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY')
 }
 
