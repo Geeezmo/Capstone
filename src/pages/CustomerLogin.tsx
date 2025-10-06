@@ -105,15 +105,8 @@ const CustomerLogin = () => {
             <CardHeader className="text-center pb-4">
               <CardTitle className="text-xl">Customer Sign In</CardTitle>
               <CardDescription>Access your account to browse and purchase products</CardDescription>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full border-primary/20 hover:bg-primary/5 mb-4"
-                onClick={() => navigate("/customer/dashboard")}
-              >
-                <Store className="h-4 w-4 mr-2 text-primary" />
-                Try Demo Shop
-              </Button>
+
+              {/* Removed demo button to avoid bypassing auth */}
               <div className="relative mb-4">
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />

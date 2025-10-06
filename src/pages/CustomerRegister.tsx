@@ -73,10 +73,14 @@ const CustomerRegister = () => {
       console.log('supabase signUp returned userId:', userId)
 
       if (userId) {
-        const insertResult = await supabase
-          .from('customers')
-          .insert([
-            {
+        // If there's an active session we could insert directly with anon supabase client,
+        // but if email confirmation is enabled the frontend won't have an authenticated session.
+        // Call the server-side endpoint that uses the service role key to create the profile.
+        try {
+          const resp = await fetch('/api/create-customer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               id: userId,
               first_name: formData.firstName,
               last_name: formData.lastName,
@@ -85,18 +89,22 @@ const CustomerRegister = () => {
               address: formData.address ?? null,
               agree_to_terms: !!formData.agreeToTerms,
               marketing_emails: !!formData.marketingEmails,
-            },
-          ])
-          .select()
-        console.log('customers insert =>', insertResult)
-
-        if (insertResult.error) {
-          setError(insertResult.error.message ?? String(insertResult.error))
-          alert('Insert error: ' + (insertResult.error.message ?? String(insertResult.error)))
-        } else {
-          alert('Account created — redirecting to login')
-          navigate('/customer/login')
-          return
+            }),
+          })
+          const json = await resp.json()
+          if (!resp.ok) {
+            console.error('create-customer error', json)
+            setError(json?.error ?? 'Server insert failed')
+            alert('Insert error: ' + (json?.error ?? 'Server insert failed'))
+          } else {
+            alert('Account created — redirecting to login')
+            navigate('/customer/login')
+            return
+          }
+        } catch (err: unknown) {
+          console.error('create-customer fetch error', err)
+          setError(err instanceof Error ? err.message : String(err))
+          alert('Insert error: ' + (err instanceof Error ? err.message : String(err)))
         }
       } else {
         // email confirmation flow: user id may not be returned
@@ -296,7 +304,12 @@ const CustomerRegister = () => {
           </div>
         </div>
       </div>
-    </div>
+
+
+
+
+
+export default CustomerRegister;};  );    </div>    </div>
   );
 };
 

@@ -112,7 +112,17 @@ const CustomerDashboard: React.FC = () => {
           <div className="container mx-auto px-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
               <div>
-                <h1 className="text-3xl font-bold">Welcome back{profile ? `, ${profile.first_name || ""}` : ", Customer"}!</h1>
+              <h1 className="text-3xl font-bold">
+  Welcome back,{" "}
+  {profile?.first_name
+    ? profile.first_name
+    : profile?.email
+    ? profile.email.split("@")[0]
+    : "Customer"}
+  !
+</h1>
+
+
                 <p className="text-muted-foreground mt-2">Manage your shopping experience and track your orders</p>
               </div>
 
